@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Windows.ApplicationModel.Activation;
 
 namespace Microsoft.Toolkit.Uwp
@@ -89,24 +88,17 @@ namespace Microsoft.Toolkit.Uwp
         {
             Uri validatedUri = ValidateSourceUri(uri);
 
-            string queryString = SetRootAndGetQueryString(validatedUri);
-            if (!string.IsNullOrWhiteSpace(queryString))
+            SetRoot(validatedUri);
+            var queryParams = new Helpers.QueryParameterCollection(validatedUri);
+            foreach (var queryStringParam in queryParams)
             {
-                foreach (var queryStringParam in queryString.Split('&')
-                    .Select(param =>
-                    {
-                        var kvp = param.Split('=');
-                        return new KeyValuePair<string, string>(kvp[0], kvp[1]);
-                    }))
+                try
                 {
-                    try
-                    {
-                        Add(queryStringParam.Key, queryStringParam.Value);
-                    }
-                    catch (ArgumentException aex)
-                    {
-                        throw new ArgumentException("If you wish to use the same key name to add an array of values, try using CollectionFormingDeepLinkParser", aex);
-                    }
+                    Add(queryStringParam.Key, queryStringParam.Value);
+                }
+                catch (ArgumentException aex)
+                {
+                    throw new ArgumentException("If you wish to use the same key name to add an array of values, try using CollectionFormingDeepLinkParser", aex);
                 }
             }
         }
@@ -115,20 +107,17 @@ namespace Microsoft.Toolkit.Uwp
         /// Sets the root and gets the query string.
         /// </summary>
         /// <param name="validatedUri">The validated URI (from <see cref="ValidateSourceUri(string)" />).</param>
-        /// <returns>The querystring specified on <paramref name="validatedUri"/>, <c>null</c> if one is not defined.</returns>
-        protected virtual string SetRootAndGetQueryString(Uri validatedUri)
+        protected virtual void SetRoot(Uri validatedUri)
         {
             var origString = validatedUri.OriginalString;
             int queryStartPosition = origString.IndexOf('?');
             if (queryStartPosition == -1)
             { // No querystring on the URI
                 this.Root = origString;
-                return null;
             }
             else
             {
                 this.Root = origString.Substring(0, queryStartPosition);
-                return origString.Substring(queryStartPosition + 1);
             }
         }
 
