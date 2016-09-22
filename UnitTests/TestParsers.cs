@@ -1,4 +1,5 @@
 ﻿using Microsoft.Toolkit.Uwp;
+using System;
 
 namespace UnitTests
 {
@@ -7,8 +8,13 @@ namespace UnitTests
 #pragma warning restore SA1649 // File name must match first type name
     {
         public TestDeepLinkParser(string uri)
+            : base(uri)
         {
-            ParseUriString(uri);
+        }
+
+        public TestDeepLinkParser(Uri uri)
+            : base(uri)
+        {
         }
     }
 
@@ -17,8 +23,13 @@ namespace UnitTests
 #pragma warning restore SA1402 // File may only contain a single class
     {
         public TestCollectionCapableDeepLinkParser(string uri)
+            : base(uri)
         {
-            ParseUriString(uri);
+        }
+
+        public TestCollectionCapableDeepLinkParser(Uri uri)
+            : base(uri)
+        {
         }
     }
 }

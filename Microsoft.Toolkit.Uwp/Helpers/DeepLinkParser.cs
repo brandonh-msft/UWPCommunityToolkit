@@ -37,6 +37,22 @@ namespace Microsoft.Toolkit.Uwp
         public static DeepLinkParser Create(IActivatedEventArgs args) => new DeepLinkParser(args);
 
         /// <summary>
+        /// Creates an instance of <see cref="DeepLinkParser"/> for the given <see cref="Uri"/>
+        /// </summary>
+        /// <param name="uri">The URI to parse.</param>
+        /// <returns>An instance of <see cref="DeepLinkParser"/></returns>
+        /// <remarks><paramref name="uri"/> will be tested for null</remarks>
+        public static DeepLinkParser Create(Uri uri) => new DeepLinkParser(uri?.OriginalString);
+
+        /// <summary>
+        /// Creates an instance of <see cref="DeepLinkParser"/> for the given <see cref="Uri"/>
+        /// </summary>
+        /// <param name="uri">The URI to parse.</param>
+        /// <returns>An instance of <see cref="DeepLinkParser"/></returns>
+        /// <remarks><paramref name="uri"/> will be tested for null</remarks>
+        public static DeepLinkParser Create(string uri) => new DeepLinkParser(uri);
+
+        /// <summary>
         /// Validates the source URI.
         /// </summary>
         /// <param name="uri">The URI.</param>
@@ -63,7 +79,12 @@ namespace Microsoft.Toolkit.Uwp
         {
         }
 
-        private DeepLinkParser(IActivatedEventArgs args)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DeepLinkParser" /> class.
+        /// </summary>
+        /// <param name="args">The <see cref="IActivatedEventArgs"/> instance containing the event data.</param>
+        /// <exception cref="System.ArgumentException">'args' is not a LaunchActivatedEventArgs instance</exception>
+        protected DeepLinkParser(IActivatedEventArgs args)
         {
             inputArgs = args as ILaunchActivatedEventArgs;
 
@@ -76,23 +97,41 @@ namespace Microsoft.Toolkit.Uwp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DeepLinkParser" /> class.
+        /// </summary>
+        /// <param name="uri">The URI.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="uri"/> is null</exception>
+        protected DeepLinkParser(Uri uri)
+            : this(uri?.OriginalString)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DeepLinkParser" /> class.
+        /// </summary>
+        /// <param name="uri">The URI.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="uri"/> is null, empty, or consists only of whitespace characters</exception>
+        protected DeepLinkParser(string uri)
+        {
+            if (string.IsNullOrWhiteSpace(uri))
+            {
+                throw new ArgumentNullException(nameof(uri));
+            }
+
+            ParseUriString(uri);
+        }
+
+        /// <summary>
         /// Parses the URI string in to components.
         /// </summary>
         /// <param name="uri">The URI.</param>
         protected virtual void ParseUriString(string uri)
         {
             Uri validatedUri = ValidateSourceUri(uri);
-
-            var origString = validatedUri.OriginalString;
-            int queryStartPosition = origString.IndexOf('?');
-            if (queryStartPosition == -1)
-            { // No querystring on the URI
-                this.Root = origString;
-            }
-            else
+            string queryString;
+            SetRoot(validatedUri, out queryString);
+            if (!string.IsNullOrWhiteSpace(queryString))
             {
-                this.Root = origString.Substring(0, queryStartPosition);
-                var queryString = origString.Substring(queryStartPosition + 1);
                 foreach (var queryStringParam in queryString.Split('&')
                     .Select(param =>
                     {
@@ -108,6 +147,36 @@ namespace Microsoft.Toolkit.Uwp
                     {
                         throw new ArgumentException("If you wish to use the same key name to add an array of values, try using CollectionFormingDeepLinkParser", aex);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets <see cref="Root" /> on this <see cref="DeepLinkParser" /> instance and computes the query string position
+        /// </summary>
+        /// <param name="validatedUri">The validated URI (from <see cref="ValidateSourceUri(string)" />).</param>
+        /// <param name="queryString">The query string computed as part of determining where the Root starts and ends.</param>
+        protected void SetRoot(Uri validatedUri, out string queryString)
+        {
+            var origString = validatedUri.OriginalString;
+            var startIndex = origString.IndexOf("://");
+            if (startIndex != -1)
+            {
+                origString = origString.Substring(startIndex + 3);
+            }
+
+            int queryStartPosition = origString.IndexOf('?');
+            queryString = null;
+            if (queryStartPosition == -1)
+            { // No querystring on the URI
+                this.Root = origString;
+            }
+            else
+            {
+                this.Root = origString.Substring(0, queryStartPosition);
+                if (queryStartPosition != -1)
+                { // No querystring on the URI
+                    queryString = origString.Substring(queryStartPosition + 1);
                 }
             }
         }
