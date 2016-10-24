@@ -1,11 +1,11 @@
-﻿using Microsoft.Toolkit.Uwp;
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using System;
-using System.Diagnostics;
-using UnitTests;
-
-namespace Tests
+﻿namespace Tests
 {
+    using System;
+    using System.Diagnostics;
+    using Microsoft.Toolkit.Uwp;
+    using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
+    using UnitTests;
+
     [TestClass]
     public class DeepLinkParserTests
     {
