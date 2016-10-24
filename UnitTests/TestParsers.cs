@@ -1,8 +1,8 @@
-﻿using Microsoft.Toolkit.Uwp;
-using System;
-
-namespace UnitTests
+﻿namespace UnitTests
 {
+    using System;
+    using Microsoft.Toolkit.Uwp;
+
 #pragma warning disable SA1649 // File name must match first type name
     internal class TestDeepLinkParser : DeepLinkParser
 #pragma warning restore SA1649 // File name must match first type name

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Windows.ApplicationModel.Activation;
 
 namespace Microsoft.Toolkit.Uwp
@@ -56,10 +55,18 @@ namespace Microsoft.Toolkit.Uwp
         /// Validates the source URI.
         /// </summary>
         /// <param name="uri">The URI.</param>
-        /// <returns><paramref name="uri"/> as a <c>System.Uri</c> instance</returns>
+        /// <returns>
+        ///   <paramref name="uri" /> as a <c>System.Uri</c> instance
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">thrown if <paramref name="uri"/> is null</exception>
         /// <exception cref="System.ArgumentException">Not a valid URI format</exception>
         protected static Uri ValidateSourceUri(string uri)
         {
+            if (uri == null)
+            {
+                throw new ArgumentNullException(nameof(uri));
+            }
+
             Uri validatedUri;
             if (!Uri.TryCreate(uri, UriKind.RelativeOrAbsolute, out validatedUri)
                 || !validatedUri.IsWellFormedOriginalString())
@@ -69,8 +76,6 @@ namespace Microsoft.Toolkit.Uwp
 
             return validatedUri;
         }
-
-        private readonly ILaunchActivatedEventArgs inputArgs;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeepLinkParser"/> class.
@@ -86,7 +91,7 @@ namespace Microsoft.Toolkit.Uwp
         /// <exception cref="System.ArgumentException">'args' is not a LaunchActivatedEventArgs instance</exception>
         protected DeepLinkParser(IActivatedEventArgs args)
         {
-            inputArgs = args as ILaunchActivatedEventArgs;
+            var inputArgs = args as ILaunchActivatedEventArgs;
 
             if (inputArgs == null)
             {
@@ -128,35 +133,27 @@ namespace Microsoft.Toolkit.Uwp
         protected virtual void ParseUriString(string uri)
         {
             Uri validatedUri = ValidateSourceUri(uri);
-            string queryString;
-            SetRoot(validatedUri, out queryString);
-            if (!string.IsNullOrWhiteSpace(queryString))
+
+            SetRoot(validatedUri);
+            var queryParams = new Helpers.QueryParameterCollection(validatedUri);
+            foreach (var queryStringParam in queryParams)
             {
-                foreach (var queryStringParam in queryString.Split('&')
-                    .Select(param =>
-                    {
-                        var kvp = param.Split('=');
-                        return new KeyValuePair<string, string>(kvp[0], kvp[1]);
-                    }))
+                try
                 {
-                    try
-                    {
-                        Add(queryStringParam.Key, queryStringParam.Value);
-                    }
-                    catch (ArgumentException aex)
-                    {
-                        throw new ArgumentException("If you wish to use the same key name to add an array of values, try using CollectionFormingDeepLinkParser", aex);
-                    }
+                    Add(queryStringParam.Key, queryStringParam.Value);
+                }
+                catch (ArgumentException aex)
+                {
+                    throw new ArgumentException("If you wish to use the same key name to add an array of values, try using CollectionFormingDeepLinkParser", aex);
                 }
             }
         }
 
         /// <summary>
-        /// Sets <see cref="Root" /> on this <see cref="DeepLinkParser" /> instance and computes the query string position
+        /// Sets <see cref="Root" /> on this <see cref="DeepLinkParser" /> instance
         /// </summary>
         /// <param name="validatedUri">The validated URI (from <see cref="ValidateSourceUri(string)" />).</param>
-        /// <param name="queryString">The query string computed as part of determining where the Root starts and ends.</param>
-        protected void SetRoot(Uri validatedUri, out string queryString)
+        protected virtual void SetRoot(Uri validatedUri)
         {
             var origString = validatedUri.OriginalString;
             var startIndex = origString.IndexOf("://");
@@ -166,7 +163,6 @@ namespace Microsoft.Toolkit.Uwp
             }
 
             int queryStartPosition = origString.IndexOf('?');
-            queryString = null;
             if (queryStartPosition == -1)
             { // No querystring on the URI
                 this.Root = origString;
@@ -174,10 +170,6 @@ namespace Microsoft.Toolkit.Uwp
             else
             {
                 this.Root = origString.Substring(0, queryStartPosition);
-                if (queryStartPosition != -1)
-                { // No querystring on the URI
-                    queryString = origString.Substring(queryStartPosition + 1);
-                }
             }
         }
 
